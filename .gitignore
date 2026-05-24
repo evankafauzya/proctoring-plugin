@@ -1,0 +1,37 @@
+/cscope.*
+/.patches/
+.idea/
+/nbproject/
+
+composer.phar
+.scannerwork
+sonar-project.properties
+.vscode/
+test.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / temp files
+*.code-workspace
+*.swp
+*.swo
+*.bak
+*.tmp
+*~
+
+# Python (one-off helper scripts that may be regenerated)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs (plugin writes to PHP error_log; never commit captures here)
+*.log
+
+# Locally-overridden config that must never be committed
+config.local.php
+.env
+.env.local

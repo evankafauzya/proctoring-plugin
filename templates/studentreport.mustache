@@ -1,0 +1,156 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+
+{{!
+    @template quizaccess_proctoring/studentreport
+    Per-student proctoring report: profile card + session summary + per-frame table.
+}}
+
+{{#issiteadmin}}
+    <div class="alert alert-warning" role="alert">
+        <h1 class="proctoring-custom-warning-message">{{#str}}userimagenotuploaded, quizaccess_proctoring{{/str}}</h1>
+        <a href="{{redirecturl}}" class="proctoring-custom-upload-link">{{#str}}uploadimagehere, quizaccess_proctoring{{/str}}</a>
+    </div>
+{{/issiteadmin}}
+
+<h3>{{#str}}picturesusedreport, quizaccess_proctoring{{/str}}</h3>
+
+<div class="container-fluid p-0">
+    <div class="row no-gutters">
+
+        <div class="col-lg-3 col-md-5">
+            <table class="generaltable generalbox reporttable" id="proctoring-table-style">
+                <thead>
+                    <tr><th class="text-center">{{#str}}name, quizaccess_proctoring{{/str}}</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="text-center"><img src="{{userimageurl}}" alt="User Picture" class="img-fluid" id="proctoring-profile-img"></td></tr>
+                    <tr><td class="text-center font-weight-bold">{{firstname}} {{lastname}}</td></tr>
+                    <tr><td class="text-center font-weight-bold">{{email}}</td></tr>
+                    {{#fcmethod}}
+                        <tr><td class="text-center"><a href="{{analyzeurl}}" class="btn btn-primary">{{#str}}analyzimage, quizaccess_proctoring{{/str}}</a></td></tr>
+                    {{/fcmethod}}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-lg-9 col-md-7">
+
+            {{#hasframes}}
+                <div class="card proctoring-summary-card">
+                    <div class="card-header"><strong>{{#str}}summary:title, quizaccess_proctoring{{/str}}</strong></div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>{{#str}}summary:framescaptured, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.frames_total}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:framesanalyzed, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.analyzed_total}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:facesuccessrate, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.success_rate}}% ({{summary.face_match_success}}/{{summary.analyzed_total}})</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:avgscore, quizaccess_proctoring{{/str}} (threshold {{summary.threshold}}%)</td>
+                                    <td>{{summary.avg_score}}%</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:noface, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.no_face}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:multifaces, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.multiple_faces}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:unusualhead, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.unusual_head}}</td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:unusualgaze, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.unusual_gaze}}</td>
+                                </tr>
+                                {{#summary.avg_gaze_offset}}
+                                    <tr>
+                                        <td>{{#str}}summary:avggazeoffset, quizaccess_proctoring{{/str}}</td>
+                                        <td>{{summary.avg_gaze_offset}}</td>
+                                    </tr>
+                                {{/summary.avg_gaze_offset}}
+                                <tr>
+                                    <td>{{#str}}summary:riskdistribution, quizaccess_proctoring{{/str}}</td>
+                                    <td>
+                                        <span class="proctoring-risk-badge proctoring-risk-low">{{summary.risk_low}}</span>
+                                        <span class="proctoring-risk-badge proctoring-risk-medium">{{summary.risk_medium}}</span>
+                                        <span class="proctoring-risk-badge proctoring-risk-high">{{summary.risk_high}}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>{{#str}}summary:duration, quizaccess_proctoring{{/str}}</td>
+                                    <td>{{summary.duration_minutes}} min &nbsp; <small class="text-muted">{{summary.start_time}} → {{summary.end_time}}</small></td>
+                                </tr>
+                                {{#summary.overall_risk}}
+                                    <tr>
+                                        <td>{{#str}}summary:overallrisk, quizaccess_proctoring{{/str}}</td>
+                                        <td><span class="proctoring-risk-badge proctoring-risk-{{summary.overall_risk}}">{{summary.overall_risk}}</span></td>
+                                    </tr>
+                                {{/summary.overall_risk}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {{/hasframes}}
+
+            <table class="generaltable generalbox reporttable" id="proctoring-table-style">
+                <thead>
+                    <tr>
+                        <th class="text-center">{{#str}}frame:index, quizaccess_proctoring{{/str}}</th>
+                        <th class="text-center">{{#str}}frame:time, quizaccess_proctoring{{/str}}</th>
+                        <th class="text-center">{{#str}}frame:webcam, quizaccess_proctoring{{/str}}</th>
+                        <th class="text-center">{{#str}}frame:score, quizaccess_proctoring{{/str}}</th>
+                        <th class="text-center">{{#str}}frame:risk, quizaccess_proctoring{{/str}}</th>
+                        <th class="text-center">{{#str}}frame:indicators, quizaccess_proctoring{{/str}}</th>
+                    </tr>
+                </thead>
+                <tbody id="proctoring-table-body">
+                    {{#data}}
+                        <tr>
+                            <td class="text-center">{{name}}</td>
+                            <td class="text-center"><small>{{timestamp}}</small></td>
+                            <td class="text-center">
+                                {{#image_url}}
+                                    <a href="{{image_url}}" data-lightbox="proc-images" data-title="{{name}}">
+                                        <img id="{{img_id}}" class="proctoring-border-color-{{border_color}}" width="100"
+                                             src="{{image_url}}" alt="{{name}}" data-lightbox="{{lightbox_data}}">
+                                    </a>
+                                {{/image_url}}
+                            </td>
+                            <td class="text-center">
+                                {{#has_score}}{{score}}%{{/has_score}}
+                                {{^has_score}}{{#str}}frame:none, quizaccess_proctoring{{/str}}{{/has_score}}
+                            </td>
+                            <td class="text-center">
+                                {{#risk_level}}<span class="proctoring-risk-badge proctoring-risk-{{risk_level}}">{{risk_level}}</span>{{/risk_level}}
+                                {{^risk_level}}{{#str}}frame:none, quizaccess_proctoring{{/str}}{{/risk_level}}
+                            </td>
+                            <td><small>{{#risk_indicators}}{{risk_indicators}}{{/risk_indicators}}{{^risk_indicators}}{{#str}}frame:none, quizaccess_proctoring{{/str}}{{/risk_indicators}}</small></td>
+                        </tr>
+                    {{/data}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
