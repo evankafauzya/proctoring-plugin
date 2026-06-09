@@ -278,5 +278,19 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026060902, 'quizaccess', 'proctoring');
     }
 
+    if ($oldversion < 2026060903) {
+        // Tag each row with what produced it so the report can distinguish
+        // a silent in-quiz capture from a periodic re-verification.
+        // Values: seed | silent | preflight | periodic | presubmit.
+        $table = new xmldb_table('quizaccess_proctoring_logs');
+        $field = new xmldb_field('source', XMLDB_TYPE_CHAR, '16', null,
+            XMLDB_NOTNULL, null, 'silent', 'multiface_alerted');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026060903, 'quizaccess', 'proctoring');
+    }
+
     return true;
 }

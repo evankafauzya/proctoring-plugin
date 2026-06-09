@@ -90,6 +90,29 @@ $string['summary:riskdistribution'] = 'Distribución de riesgo';
 $string['summary:duration'] = 'Duración de la sesión';
 $string['summary:overallrisk'] = 'Riesgo general';
 $string['summary:threshold'] = 'Umbral de coincidencia facial';
+$string['summary:preflight'] = 'Verificación previa (inicio del examen)';
+$string['summary:periodic'] = 'Reverificaciones durante el examen';
+$string['summary:presubmit'] = 'Verificación antes de entregar';
+
+// Texto del modal de reverificación durante el examen.
+$string['modal:verifybtn'] = 'Verificar mi rostro';
+$string['modal:starting_camera'] = 'Iniciando cámara...';
+$string['modal:camera_ready'] = 'Cámara lista. Haga clic en "Verificar mi rostro".';
+$string['modal:camera_failed'] = 'No se pudo iniciar la cámara.';
+$string['modal:camera_not_ready'] = 'La cámara aún no está lista. Espere e intente de nuevo.';
+$string['modal:nosupport'] = 'Este navegador no permite el acceso a la cámara.';
+$string['modal:verifying'] = 'Verificando, espere por favor...';
+$string['modal:identity_verified'] = 'Identidad verificada.';
+$string['modal:restoring_time'] = 'Restaurando su tiempo de examen ({seconds}s)...';
+$string['modal:no_enrolled_photo'] = 'No se encontró una foto registrada. Contacte a su administrador.';
+$string['modal:invalid_api'] = 'El servicio de verificación rechazó la solicitud (autenticación fallida). Contacte a su administrador.';
+$string['modal:service_unavailable'] = 'El servicio de verificación facial no está disponible temporalmente. Espere un momento e intente de nuevo.';
+$string['modal:face_not_matched'] = 'El rostro no coincide. Reubíquese con buena iluminación e intente de nuevo.';
+$string['modal:verification_failed'] = 'La verificación falló. Intente de nuevo.';
+$string['modal:presubmit_heading'] = 'Verifique su identidad para entregar';
+$string['modal:presubmit_message'] = 'Antes de entregar el examen debe verificar su identidad. El botón Entregar permanece desactivado hasta que lo haga.';
+$string['modal:periodic_heading'] = 'Reverificación de identidad requerida';
+$string['modal:periodic_message'] = 'Por favor verifique su identidad para continuar el examen.';
 
 // Per-frame columns in the student report.
 $string['frame:index'] = '#';

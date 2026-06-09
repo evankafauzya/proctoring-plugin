@@ -33,7 +33,8 @@
                 <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" SEQUENCE="false"
                        COMMENT="Course id." PREVIOUS="id" NEXT="quizid"/>
                 <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" SEQUENCE="false"
-                       COMMENT="Quiz id" PREVIOUS="courseid" NEXT="userid"/>
+                       COMMENT="Course module id (cmid). Misnamed for historical reasons - the value stored here is course_modules.id, NOT quiz.id. Do not join to quizaccess_proctoring.quizid (which IS quiz.id)."
+                       PREVIOUS="courseid" NEXT="userid"/>
                 <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0" SEQUENCE="false"
                        COMMENT="User who validate identity" PREVIOUS="quizid" NEXT="profilepicture"/>
                 <FIELD NAME="webcampicture" TYPE="text" NOTNULL="true" UNSIGNED="false" SEQUENCE="false"
@@ -51,7 +52,10 @@
                        PREVIOUS="deletionprogress" NEXT="multiface_alerted"/>
                 <FIELD NAME="multiface_alerted" TYPE="int" LENGTH="2" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
                        SEQUENCE="false" COMMENT="1 if a multi-face alert message was dispatched for this attempt (per-attempt rate limit guard)"
-                       PREVIOUS="behavior_result" NEXT="timemodified"/>
+                       PREVIOUS="behavior_result" NEXT="source"/>
+                <FIELD NAME="source" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="silent" SEQUENCE="false"
+                       COMMENT="What produced this row: seed | silent | preflight | periodic | presubmit"
+                       PREVIOUS="multiface_alerted" NEXT="timemodified"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
                        COMMENT="Validation process date and time" PREVIOUS="multiface_alerted"/>
             </FIELDS>

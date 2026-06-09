@@ -408,6 +408,9 @@ if (
         $profileimageurl = quizaccess_proctoring_get_image_url($studentid);
         $redirecturl = new moodle_url('/mod/quiz/accessrule/proctoring/upload_image.php', ['id' => $studentid]);
 
+        // Exclude the seed row that setup_attempt_page inserts at the start of
+        // every attempt — it has no webcam picture and just exists to give
+        // proctoring.js a row id for namespacing silent-capture files.
         $sql = "SELECT e.id AS reportid,
                e.userid AS studentid,
                e.webcampicture AS webcampicture,
@@ -418,13 +421,15 @@ if (
                u.email AS email,
                e.awsscore,
                e.awsflag,
-               e.behavior_result
+               e.behavior_result,
+               e.source
         FROM {quizaccess_proctoring_logs} e
         INNER JOIN {user} u ON u.id = e.userid
         WHERE e.courseid = :courseid
           AND e.quizid = :cmid
           AND u.id = :studentid
-          AND e.deletionprogress = :deletionprogress";
+          AND e.deletionprogress = :deletionprogress
+          AND e.source <> 'seed'";
         $params = [
             'courseid' => $courseid,
             'cmid' => $cmid,
@@ -456,6 +461,15 @@ if (
             'risk_high' => 0,
             'first_time' => null,
             'last_time' => null,
+            // Per-verification-source counts: how many times each modal type
+            // fired during this attempt and how many of them passed.
+            'preflight_total' => 0,
+            'preflight_passed' => 0,
+            'periodic_total' => 0,
+            'periodic_passed' => 0,
+            'presubmit_total' => 0,
+            'presubmit_passed' => 0,
+            'silent_total' => 0,
         ];
 
         $rowidx = 0;
@@ -479,14 +493,39 @@ if (
                 // service error, etc.) so we don't count it.
                 $row['has_score'] = (int) ($info->awsflag == 2);
                 $row['score'] = (int) $info->awsscore;
+                $passed = ($info->awsflag == 2 && $info->awsscore > $thresholdvalue);
                 if ($info->awsflag == 2) {
                     $summary['analyzed_total']++;
                     $summary['score_sum'] += (int) $info->awsscore;
-                    if ($info->awsscore > $thresholdvalue) {
+                    if ($passed) {
                         $summary['face_match_success']++;
                     } else {
                         $summary['face_match_failed']++;
                     }
+                }
+
+                // Per-source tally: separate the four capture types so the
+                // teacher can see "3 of 4 mid-quiz re-verifications passed"
+                // rather than one flat number.
+                $rowsource = isset($info->source) ? (string) $info->source : 'silent';
+                $row['source'] = $rowsource;
+                if ($rowsource === 'preflight') {
+                    $summary['preflight_total']++;
+                    if ($passed) {
+                        $summary['preflight_passed']++;
+                    }
+                } else if ($rowsource === 'periodic') {
+                    $summary['periodic_total']++;
+                    if ($passed) {
+                        $summary['periodic_passed']++;
+                    }
+                } else if ($rowsource === 'presubmit') {
+                    $summary['presubmit_total']++;
+                    if ($passed) {
+                        $summary['presubmit_passed']++;
+                    }
+                } else {
+                    $summary['silent_total']++;
                 }
 
                 $row['border_color'] = $info->awsflag == 2 && $info->awsscore > $thresholdvalue ? 'green' :
@@ -580,6 +619,17 @@ if (
                 ? userdate($summary['last_time'], get_string('strftimedatetimeshort', 'langconfig'))
                 : '',
             'threshold' => $thresholdvalue,
+            'silent_total' => $summary['silent_total'],
+            'preflight_total' => $summary['preflight_total'],
+            'preflight_passed' => $summary['preflight_passed'],
+            'periodic_total' => $summary['periodic_total'],
+            'periodic_passed' => $summary['periodic_passed'],
+            'presubmit_total' => $summary['presubmit_total'],
+            'presubmit_passed' => $summary['presubmit_passed'],
+            // Booleans for the template to decide whether to show each row.
+            'has_preflight' => $summary['preflight_total'] > 0,
+            'has_periodic' => $summary['periodic_total'] > 0,
+            'has_presubmit' => $summary['presubmit_total'] > 0,
         ];
         // Single-glance verdict: any high-risk frame -> HIGH; lots of medium
         // -> MEDIUM; otherwise LOW.

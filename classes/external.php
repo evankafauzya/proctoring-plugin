@@ -149,6 +149,7 @@ class quizaccess_proctoring_external extends external_api {
             $record->userid = $USER->id;
             $record->webcampicture = "{$url}";
             $record->status = $camshot->status;
+            $record->source = 'silent';
             $record->timemodified = time();
             $screenshotid = $DB->insert_record('quizaccess_proctoring_logs', $record, true);
 
@@ -290,6 +291,13 @@ class quizaccess_proctoring_external extends external_api {
                 'parenttype' => new external_value(PARAM_RAW, 'Face image parent type'),
                 'faceimage' => new external_value(PARAM_RAW, 'Face Image'),
                 'facefound' => new external_value(PARAM_INT, 'Face found flag'),
+                // Where the verification was triggered from. Recorded on the
+                // logs row so the report can count modal verifications
+                // separately from silent captures. Optional for backward
+                // compatibility with old clients that don't pass it.
+                'source' => new external_value(PARAM_ALPHA,
+                    'Verification source: preflight | periodic | presubmit',
+                    VALUE_DEFAULT, 'periodic'),
             ]
         );
     }
@@ -316,11 +324,11 @@ class quizaccess_proctoring_external extends external_api {
      * @throws invalid_parameter_exception If any of the parameters are invalid.
      * @throws stored_file_creation_exception If there is an error creating the stored file.
      */
-    public static function validate_face($courseid, $cmid, $profileimage, $webcampicture, $parenttype, $faceimage, $facefound) {
+    public static function validate_face($courseid, $cmid, $profileimage, $webcampicture, $parenttype, $faceimage, $facefound, $source = 'periodic') {
         global $DB, $USER, $CFG;
 
         // Validate the params.
-        self::validate_parameters(
+        $params = self::validate_parameters(
             self::validate_face_parameters(),
             [
                 'courseid' => $courseid,
@@ -330,8 +338,15 @@ class quizaccess_proctoring_external extends external_api {
                 'parenttype' => $parenttype,
                 'faceimage' => $faceimage,
                 'facefound' => $facefound,
+                'source' => $source,
             ]
         );
+        // Whitelist the allowed verification sources; anything else degrades
+        // to 'periodic' so a tampered client can't write garbage to the
+        // source column.
+        $source = in_array($params['source'], ['preflight', 'periodic', 'presubmit'], true)
+            ? $params['source']
+            : 'periodic';
 
         // Check if the user is enrolled in the course as a student or teacher.
         $context = context_course::instance($courseid);
@@ -370,6 +385,7 @@ class quizaccess_proctoring_external extends external_api {
         $record->userid = $USER->id;
         $record->webcampicture = "{$url}";
         $record->status = $screenshotid;
+        $record->source = $source;
         $record->timemodified = time();
         $screenshotid = $DB->insert_record('quizaccess_proctoring_logs', $record, true);
 

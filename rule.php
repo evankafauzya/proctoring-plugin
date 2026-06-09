@@ -450,13 +450,17 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
                 throw new coding_exception('Invalid course module ID.');
             }
 
-            // Insert a new log entry for the attempt.
+            // Insert a placeholder log entry for the attempt. proctoring.js
+            // uses its id to namespace silent-capture file storage. The row
+            // itself carries no webcam picture and is filtered out of the
+            // report (source = 'seed').
             $record = (object)[
                 'courseid' => $COURSE->id,
                 'quizid' => $contextquiz->id,
                 'userid' => $USER->id,
                 'webcampicture' => '',
                 'status' => $attempt,
+                'source' => 'seed',
                 'timemodified' => time(),
             ];
             $record->id = $DB->insert_record('quizaccess_proctoring_logs', $record);
@@ -528,6 +532,29 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
     private function get_reverification_js(int $courseid, int $cmid, int $attemptid,
             int $intervalms, bool $pausequiztime): string {
         $pauseliteral = $pausequiztime ? 'true' : 'false';
+        // Pull every UI string from the language pack so the modal renders
+        // in the student's language. JSON-encoding keeps quotes and unicode
+        // safe inside the inline JS block below.
+        $strings = json_encode([
+            'verifybtn'           => get_string('modal:verifybtn',           'quizaccess_proctoring'),
+            'starting_camera'     => get_string('modal:starting_camera',     'quizaccess_proctoring'),
+            'camera_ready'        => get_string('modal:camera_ready',        'quizaccess_proctoring'),
+            'camera_failed'       => get_string('modal:camera_failed',       'quizaccess_proctoring'),
+            'camera_not_ready'    => get_string('modal:camera_not_ready',    'quizaccess_proctoring'),
+            'nosupport'           => get_string('modal:nosupport',           'quizaccess_proctoring'),
+            'verifying'           => get_string('modal:verifying',           'quizaccess_proctoring'),
+            'identity_verified'   => get_string('modal:identity_verified',   'quizaccess_proctoring'),
+            'restoring_time'      => get_string('modal:restoring_time',      'quizaccess_proctoring'),
+            'no_enrolled_photo'   => get_string('modal:no_enrolled_photo',   'quizaccess_proctoring'),
+            'invalid_api'         => get_string('modal:invalid_api',         'quizaccess_proctoring'),
+            'service_unavailable' => get_string('modal:service_unavailable', 'quizaccess_proctoring'),
+            'face_not_matched'    => get_string('modal:face_not_matched',    'quizaccess_proctoring'),
+            'verification_failed' => get_string('modal:verification_failed', 'quizaccess_proctoring'),
+            'presubmit_heading'   => get_string('modal:presubmit_heading',   'quizaccess_proctoring'),
+            'presubmit_message'   => get_string('modal:presubmit_message',   'quizaccess_proctoring'),
+            'periodic_heading'    => get_string('modal:periodic_heading',    'quizaccess_proctoring'),
+            'periodic_message'    => get_string('modal:periodic_message',    'quizaccess_proctoring'),
+        ], JSON_UNESCAPED_UNICODE);
         return <<<JS
 (function() {
     if (window.proctoringReverifyLoaded) {
@@ -540,6 +567,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
     var ATTEMPTID = {$attemptid};
     var INTERVAL = {$intervalms};
     var PAUSE_QUIZ_TIME = {$pauseliteral};
+    var STR = {$strings};
     var LAST_KEY = 'proctoring_reverify_last_' + CMID;
     var pauseStartedAt = 0;
 
@@ -548,6 +576,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
         return;
     }
     var isSummary = !!document.getElementById('page-mod-quiz-summary');
+    var currentSource = isSummary ? 'presubmit' : 'periodic';
 
     // If the teacher disabled in-quiz re-verification (interval = 0) and we are
     // NOT on the summary page, nothing to do here. The preflight check at quiz
@@ -566,12 +595,22 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
     var onSuccessCallback = null;
     var overlay, headingEl, msgEl, videoWrap, statusEl, verifyBtn;
 
+    // sessionStorage can throw in some private-browsing contexts. Wrap so a
+    // SecurityError on read doesn't kill the entire re-verification init.
     function lastVerified() {
-        var v = sessionStorage.getItem(LAST_KEY);
-        return v ? parseInt(v, 10) : 0;
+        try {
+            var v = sessionStorage.getItem(LAST_KEY);
+            return v ? parseInt(v, 10) : 0;
+        } catch (e) {
+            return 0;
+        }
     }
     function markVerified() {
-        sessionStorage.setItem(LAST_KEY, Date.now().toString());
+        try {
+            sessionStorage.setItem(LAST_KEY, Date.now().toString());
+        } catch (e) {
+            // Falls back to anchoring on next page load.
+        }
     }
 
     function ensureCamera() {
@@ -586,7 +625,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
             });
         }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            return Promise.reject(new Error('This browser does not support camera access.'));
+            return Promise.reject(new Error(STR.nosupport));
         }
         return navigator.mediaDevices.getUserMedia({video: true, audio: false}).then(function(stream) {
             video.srcObject = stream;
@@ -626,7 +665,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
         statusEl.style.cssText = 'min-height:20px;margin-bottom:14px;font-size:14px;font-weight:bold;';
         verifyBtn = document.createElement('button');
         verifyBtn.type = 'button';
-        verifyBtn.textContent = 'Verify my face';
+        verifyBtn.textContent = STR.verifybtn;
         verifyBtn.style.cssText = 'background:#0f6cbf;color:#fff;border:0;border-radius:6px;'
             + 'padding:10px 22px;font-size:15px;cursor:pointer;';
         box.appendChild(headingEl);
@@ -651,14 +690,14 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
         onSuccessCallback = onSuccess;
         headingEl.textContent = heading;
         msgEl.textContent = message;
-        setStatus('Starting camera...', '#555');
+        setStatus(STR.starting_camera, '#555');
         verifyBtn.disabled = false;
         overlay.style.display = 'flex';
         verifyBtn.focus();
         ensureCamera().then(function() {
-            setStatus('Camera ready. Click "Verify my face".', '#1a7f37');
+            setStatus(STR.camera_ready, '#1a7f37');
         }).catch(function(err) {
-            setStatus(err.message || 'Camera could not be started.', '#b3261e');
+            setStatus(err.message || STR.camera_failed, '#b3261e');
         });
     }
 
@@ -669,10 +708,10 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
 
     function doVerify(Ajax) {
         verifyBtn.disabled = true;
-        setStatus('Verifying, please wait...', '#555');
+        setStatus(STR.verifying, '#555');
         ensureCamera().then(function() {
             if (!video.videoWidth) {
-                throw new Error('Camera is not ready yet. Please wait and try again.');
+                throw new Error(STR.camera_not_ready);
             }
             return Ajax.call([{
                 methodname: 'quizaccess_proctoring_validate_face',
@@ -683,13 +722,14 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
                     webcampicture: captureFrame(),
                     parenttype: 'camshot_image',
                     faceimage: '',
-                    facefound: 1
+                    facefound: 1,
+                    source: currentSource
                 }
             }])[0];
         }).then(function(res) {
             if (res && res.status === 'success') {
                 markVerified();
-                setStatus('Identity verified.', '#1a7f37');
+                setStatus(STR.identity_verified, '#1a7f37');
 
                 var finishSuccess = function() {
                     closeModal();
@@ -705,7 +745,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
                 // submit -- no point extending the timer).
                 var pauseSeconds = Math.round((Date.now() - pauseStartedAt) / 1000);
                 if (PAUSE_QUIZ_TIME && !isSummary && ATTEMPTID > 0 && pauseSeconds >= 1) {
-                    setStatus('Restoring your quiz time (' + pauseSeconds + 's)...', '#1a7f37');
+                    setStatus(STR.restoring_time.replace('{seconds}', pauseSeconds), '#1a7f37');
                     Ajax.call([{
                         methodname: 'quizaccess_proctoring_extend_attempt_time',
                         args: {
@@ -725,21 +765,21 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
                     setTimeout(finishSuccess, 800);
                 }
             } else if (res && res.status === 'photonotuploaded') {
-                setStatus('No enrolled photo found. Please contact your administrator.', '#b3261e');
+                setStatus(STR.no_enrolled_photo, '#b3261e');
                 verifyBtn.disabled = false;
             } else if (res && res.status === 'invalidApi') {
-                setStatus('Face verification service rejected the request (authentication failed). Contact your administrator.', '#b3261e');
+                setStatus(STR.invalid_api, '#b3261e');
                 verifyBtn.disabled = false;
             } else if (res && res.status === 'serviceunavailable') {
-                setStatus('Face verification service is temporarily unavailable. Wait a moment and try again.', '#b3261e');
+                setStatus(STR.service_unavailable, '#b3261e');
                 verifyBtn.disabled = false;
             } else {
-                setStatus('Face not matched. Re-position your face in good light and try again.', '#b3261e');
+                setStatus(STR.face_not_matched, '#b3261e');
                 verifyBtn.disabled = false;
             }
             return null;
         }).catch(function(err) {
-            setStatus((err && err.message) ? err.message : 'Verification failed. Please try again.', '#b3261e');
+            setStatus((err && err.message) ? err.message : STR.verification_failed, '#b3261e');
             verifyBtn.disabled = false;
         });
     }
@@ -756,9 +796,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
             for (var i = 0; i < submitBtns.length; i++) {
                 submitBtns[i].disabled = true;
             }
-            openModal('Verify your identity to submit',
-                'Before submitting your quiz you must verify your identity. '
-                    + 'The Submit button stays disabled until you do.',
+            openModal(STR.presubmit_heading, STR.presubmit_message,
                 function() {
                     for (var j = 0; j < submitBtns.length; j++) {
                         submitBtns[j].disabled = false;
@@ -771,8 +809,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
                     setTimeout(fire, 5000);
                     return;
                 }
-                openModal('Identity re-verification required',
-                    'Please verify your identity to continue your quiz.',
+                openModal(STR.periodic_heading, STR.periodic_message,
                     function() {
                         setTimeout(fire, INTERVAL);
                     });
@@ -780,7 +817,7 @@ class quizaccess_proctoring extends quizaccess_proctoring_parent_class_alias {
             var anchor = lastVerified();
             if (!anchor) {
                 markVerified();
-                anchor = lastVerified();
+                anchor = lastVerified() || Date.now();
             }
             setTimeout(fire, Math.max(0, INTERVAL - (Date.now() - anchor)));
         }

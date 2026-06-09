@@ -100,6 +100,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
                         'parenttype': 'camshot_image',
                         'faceimage': faceImage,
                         'facefound': faceFound,
+                        'source': 'preflight',
                     };
 
                     const request = {
@@ -116,6 +117,21 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
                                 $("#face_validation_result").html(`<span style="color: green">${strings.facematched}</span>`);
                                 document.getElementById("fcvalidate").style.display = "none";
                                 $("#form_activate").css("visibility", "visible");
+                                // Anchor the periodic re-verification cadence
+                                // against the preflight pass, so the mid-quiz
+                                // modal doesn't fire INTERVAL ms after the
+                                // first quiz page load (which would race the
+                                // student before they've answered anything).
+                                try {
+                                    sessionStorage.setItem(
+                                        'proctoring_reverify_last_' + cmid,
+                                        Date.now().toString()
+                                    );
+                                } catch (e) {
+                                    // sessionStorage may throw in private
+                                    // browsing; the modal just falls back to
+                                    // anchoring on page load.
+                                }
                             } else if (status === 'photonotuploaded') {
                                 $("#video").css("border", "10px solid red");
                                 $("#face_validation_result").html(`<span style="color: red">${strings.photonotuploaded}</span>`);

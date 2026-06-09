@@ -101,6 +101,24 @@
                                     <td>{{#str}}summary:duration, quizaccess_proctoring{{/str}}</td>
                                     <td>{{summary.duration_minutes}} min &nbsp; <small class="text-muted">{{summary.start_time}} → {{summary.end_time}}</small></td>
                                 </tr>
+                                {{#summary.has_preflight}}
+                                    <tr>
+                                        <td>{{#str}}summary:preflight, quizaccess_proctoring{{/str}}</td>
+                                        <td>{{summary.preflight_passed}} / {{summary.preflight_total}}</td>
+                                    </tr>
+                                {{/summary.has_preflight}}
+                                {{#summary.has_periodic}}
+                                    <tr>
+                                        <td>{{#str}}summary:periodic, quizaccess_proctoring{{/str}}</td>
+                                        <td>{{summary.periodic_passed}} / {{summary.periodic_total}}</td>
+                                    </tr>
+                                {{/summary.has_periodic}}
+                                {{#summary.has_presubmit}}
+                                    <tr>
+                                        <td>{{#str}}summary:presubmit, quizaccess_proctoring{{/str}}</td>
+                                        <td>{{summary.presubmit_passed}} / {{summary.presubmit_total}}</td>
+                                    </tr>
+                                {{/summary.has_presubmit}}
                                 {{#summary.overall_risk}}
                                     <tr>
                                         <td>{{#str}}summary:overallrisk, quizaccess_proctoring{{/str}}</td>

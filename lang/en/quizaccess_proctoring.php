@@ -90,6 +90,29 @@ $string['summary:riskdistribution'] = 'Risk distribution';
 $string['summary:duration'] = 'Session duration';
 $string['summary:overallrisk'] = 'Overall risk';
 $string['summary:threshold'] = 'Face match threshold';
+$string['summary:preflight'] = 'Preflight check (quiz start)';
+$string['summary:periodic'] = 'Mid-quiz re-verifications';
+$string['summary:presubmit'] = 'Pre-submit verification';
+
+// In-quiz re-verification modal text (rule.php::get_reverification_js).
+$string['modal:verifybtn'] = 'Verify my face';
+$string['modal:starting_camera'] = 'Starting camera...';
+$string['modal:camera_ready'] = 'Camera ready. Click "Verify my face".';
+$string['modal:camera_failed'] = 'Camera could not be started.';
+$string['modal:camera_not_ready'] = 'Camera is not ready yet. Please wait and try again.';
+$string['modal:nosupport'] = 'This browser does not support camera access.';
+$string['modal:verifying'] = 'Verifying, please wait...';
+$string['modal:identity_verified'] = 'Identity verified.';
+$string['modal:restoring_time'] = 'Restoring your quiz time ({seconds}s)...';
+$string['modal:no_enrolled_photo'] = 'No enrolled photo found. Please contact your administrator.';
+$string['modal:invalid_api'] = 'Face verification service rejected the request (authentication failed). Contact your administrator.';
+$string['modal:service_unavailable'] = 'Face verification service is temporarily unavailable. Wait a moment and try again.';
+$string['modal:face_not_matched'] = 'Face not matched. Re-position your face in good light and try again.';
+$string['modal:verification_failed'] = 'Verification failed. Please try again.';
+$string['modal:presubmit_heading'] = 'Verify your identity to submit';
+$string['modal:presubmit_message'] = 'Before submitting your quiz you must verify your identity. The Submit button stays disabled until you do.';
+$string['modal:periodic_heading'] = 'Identity re-verification required';
+$string['modal:periodic_message'] = 'Please verify your identity to continue your quiz.';
 
 // Per-frame columns in the student report.
 $string['frame:index'] = '#';
