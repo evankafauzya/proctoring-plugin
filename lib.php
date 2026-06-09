@@ -1104,6 +1104,102 @@ function quizaccess_proctoring_geturl_of_faceimage(string $data, int $userid, st
 }
 
 /**
+ * Dispatch a multi-face Moodle notification to course teachers and site
+ * admins when more than one person is detected in a proctored quiz frame.
+ *
+ * Rate-limited to one message per quiz attempt via the
+ * `quizaccess_proctoring_logs.multiface_alerted` flag: the first frame that
+ * triggers an alert sets it to 1, and subsequent frames in the same attempt
+ * short-circuit without sending another message.
+ *
+ * The capture itself was already saved by send_camshot before this is
+ * called — the message just points teachers at the report.
+ *
+ * @param int $courseid Course the quiz lives in.
+ * @param int $quizid Quiz cmid's instance id (mdl_quiz.id).
+ * @param int $userid Student under examination.
+ * @param int $facecount Number of faces the backend reported.
+ * @param int $reportid The `quizaccess_proctoring_logs.id` row that captured the offending frame.
+ * @return bool True if a fresh message was sent, false if rate-limited or no recipients.
+ */
+function quizaccess_proctoring_send_multiface_alert(int $courseid, int $quizid, int $userid,
+                                                     int $facecount, int $reportid): bool {
+    global $DB, $CFG;
+
+    // Rate-limit: already alerted for this user/quiz attempt? Skip.
+    $alreadyalerted = $DB->record_exists_select(
+        'quizaccess_proctoring_logs',
+        'quizid = :quizid AND userid = :userid AND multiface_alerted = 1',
+        ['quizid' => $quizid, 'userid' => $userid]
+    );
+    if ($alreadyalerted) {
+        return false;
+    }
+
+    // Mark this row as the one that triggered the alert. Doing this before
+    // the message_send keeps the rate-limit honoured even if message
+    // dispatch is slow and a second frame races in.
+    $DB->set_field('quizaccess_proctoring_logs', 'multiface_alerted', 1, ['id' => $reportid]);
+
+    // Gather recipients: teachers + site admins, deduplicated by id.
+    $coursecontext = context_course::instance($courseid);
+    $teachers = get_users_by_capability($coursecontext, 'mod/quiz:viewreports', 'u.id, u.firstname, u.lastname');
+    $recipients = [];
+    foreach ($teachers as $t) {
+        $recipients[(int) $t->id] = $t;
+    }
+    foreach (get_admins() as $a) {
+        $recipients[(int) $a->id] = $a;
+    }
+    if (empty($recipients)) {
+        return false;
+    }
+
+    // Build human-readable message context.
+    $student = $DB->get_record('user', ['id' => $userid], 'id, firstname, lastname, email');
+    $quiz = $DB->get_record('quiz', ['id' => $quizid], 'id, name, course');
+    $studentname = $student ? fullname($student) : "user #{$userid}";
+    $quizname = $quiz->name ?? "quiz #{$quizid}";
+
+    $a = (object) [
+        'student' => $studentname,
+        'quiz' => $quizname,
+        'count' => $facecount,
+        'time' => userdate(time()),
+    ];
+    $subject = get_string('multiface_alert_subject', 'quizaccess_proctoring', $a);
+    $body = get_string('multiface_alert_body', 'quizaccess_proctoring', $a);
+
+    // Report URL the recipient can click to investigate.
+    $reporturl = new moodle_url(
+        '/mod/quiz/accessrule/proctoring/report.php',
+        ['courseid' => $courseid, 'quizid' => $quizid]
+    );
+
+    foreach ($recipients as $recipient) {
+        $msg = new \core\message\message();
+        $msg->component = 'quizaccess_proctoring';
+        $msg->name = 'multiface_alert';
+        $msg->userfrom = \core_user::get_noreply_user();
+        $msg->userto = $recipient;
+        $msg->subject = $subject;
+        $msg->fullmessage = $body;
+        $msg->fullmessageformat = FORMAT_PLAIN;
+        $msg->fullmessagehtml = '<p>' . s($body) . '</p>'
+            . '<p><a href="' . $reporturl->out(false) . '">' . s($reporturl->out(false)) . '</a></p>';
+        $msg->smallmessage = $subject;
+        $msg->notification = 1;
+        $msg->contexturl = $reporturl->out(false);
+        $msg->contexturlname = $quizname;
+        message_send($msg);
+    }
+
+    quizaccess_proctoring_fm_log("MultiFace alert dispatched: reportid={$reportid} user={$userid} quiz={$quizid} faces={$facecount} recipients=" . count($recipients));
+
+    return true;
+}
+
+/**
  * Hook to add user enrollment link to user menu.
  * Adds a link to the face enrollment page in the user profile menu.
  *

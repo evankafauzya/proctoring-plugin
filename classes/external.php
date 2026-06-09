@@ -179,14 +179,43 @@ class quizaccess_proctoring_external extends external_api {
             $record->faceimage = "{$url}";
             $record->facefound = $facefound;
             $record->timemodified = time();
-            $screenshotid = $DB->insert_record('quizaccess_proctoring_face_images', $record, true);
+            $DB->insert_record('quizaccess_proctoring_face_images', $record, true);
+
+            // Live behavior analysis: ask the AI backend if more than one
+            // person is visible. The capture itself is already persisted, so
+            // any error here only suppresses the alert — it never loses data.
+            $multifacedetected = 0;
+            $facecount = 0;
+            try {
+                $logrowid = (int) $screenshotid;
+                if (quizaccess_proctoring_check_behavior($url, $logrowid)) {
+                    $logrow = $DB->get_record('quizaccess_proctoring_logs',
+                        ['id' => $logrowid], 'id, behavior_result');
+                    if ($logrow && !empty($logrow->behavior_result)) {
+                        $behavior = json_decode($logrow->behavior_result);
+                        if ($behavior && !empty($behavior->multiple_faces_detected)) {
+                            $multifacedetected = 1;
+                            $facecount = isset($behavior->face_count) ? (int) $behavior->face_count : 2;
+                            quizaccess_proctoring_send_multiface_alert(
+                                (int) $courseid, (int) $quizid, (int) $USER->id,
+                                $facecount, $logrowid);
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                quizaccess_proctoring_fm_log("send_camshot behavior pipeline error: " . $e->getMessage());
+            }
 
             $result = [];
             $result['screenshotid'] = $screenshotid;
+            $result['multi_face_detected'] = $multifacedetected;
+            $result['face_count'] = $facecount;
             $result['warnings'] = $warnings;
         } else {
             $result = [];
             $result['screenshotid'] = 100;
+            $result['multi_face_detected'] = 0;
+            $result['face_count'] = 0;
             $result['warnings'] = [];
         }
 
@@ -209,6 +238,10 @@ class quizaccess_proctoring_external extends external_api {
         return new external_single_structure(
             [
                 'screenshotid' => new external_value(PARAM_INT, 'screenshot sent id'),
+                'multi_face_detected' => new external_value(PARAM_INT,
+                    '1 if the backend reported more than one face in this frame', VALUE_DEFAULT, 0),
+                'face_count' => new external_value(PARAM_INT,
+                    'Number of faces the backend detected in this frame', VALUE_DEFAULT, 0),
                 'warnings' => new external_warnings(),
             ]
         );

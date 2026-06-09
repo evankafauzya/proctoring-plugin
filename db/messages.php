@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for the quizaccess_proctoring plugin.
+ * Message providers for quizaccess_proctoring.
  *
  * @package    quizaccess_proctoring
  * @copyright  2024 Brain Station 23, 2026 Evanka Fauzya
@@ -24,8 +24,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'quizaccess_proctoring';
-$plugin->release = '2.1.0';
-$plugin->version = 2026060902;
-$plugin->requires = 2023100900;
-$plugin->maturity = MATURITY_STABLE;
+$messageproviders = [
+    // Sent to course teachers + site admins when 2+ persons are detected in a
+    // proctored quiz webcam frame. Rate-limited to one message per attempt
+    // (see lib.php::quizaccess_proctoring_send_multiface_alert).
+    'multiface_alert' => [
+        'capability' => 'mod/quiz:viewreports',
+        'defaults' => [
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
+        ],
+    ],
+];

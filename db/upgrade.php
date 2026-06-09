@@ -264,5 +264,19 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026060901, 'quizaccess', 'proctoring');
     }
 
+    if ($oldversion < 2026060902) {
+        // Add multiface_alerted flag to quizaccess_proctoring_logs so the
+        // server-side multi-face notification can be rate-limited to one
+        // message per quiz attempt (see lib.php::send_multiface_alert).
+        $table = new xmldb_table('quizaccess_proctoring_logs');
+        $field = new xmldb_field('multiface_alerted', XMLDB_TYPE_INTEGER, '2', null,
+            XMLDB_NOTNULL, null, '0', 'behavior_result');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2026060902, 'quizaccess', 'proctoring');
+    }
+
     return true;
 }

@@ -307,3 +307,9 @@ $string['proctoring_enroll_menu'] = 'Enroll for Proctoring';
 
 // Event strings
 $string['event_user_photo_enrolled'] = 'User photo enrolled for proctoring';
+
+// Multi-face detection (live in-quiz alert).
+$string['messageprovider:multiface_alert'] = 'Multiple persons detected in a proctored quiz';
+$string['multiface_alert_subject'] = 'Proctoring alert: {$a->count} persons detected for {$a->student}';
+$string['multiface_alert_body'] = '{$a->count} persons were detected in the webcam of {$a->student} while taking "{$a->quiz}" at {$a->time}. Open the proctoring report for details.';
+$string['multiface_banner'] = 'Multiple persons detected in your webcam. Please make sure only you are visible.';

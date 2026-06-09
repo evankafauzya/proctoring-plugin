@@ -278,3 +278,9 @@ $string['webcampicture'] = 'Imágenes capturadas';
 $string['wrong_during_taking_image'] = 'Algo salió mal al tomar la imagen.';
 $string['wrong_during_taking_screenshot'] = 'Algo salió mal al tomar la captura de pantalla.';
 $string['youmustagree'] = 'Debe aceptar validar su identidad antes de continuar.';
+
+// Multi-face detection (live in-quiz alert).
+$string['messageprovider:multiface_alert'] = 'Se detectaron varias personas en un examen supervisado';
+$string['multiface_alert_subject'] = 'Alerta de supervisión: {$a->count} personas detectadas para {$a->student}';
+$string['multiface_alert_body'] = 'Se detectaron {$a->count} personas en la cámara de {$a->student} mientras realizaba "{$a->quiz}" a las {$a->time}. Abra el informe de supervisión para más detalles.';
+$string['multiface_banner'] = 'Se detectaron varias personas en su cámara. Por favor asegúrese de ser el único visible.';

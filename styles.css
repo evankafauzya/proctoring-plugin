@@ -2,6 +2,32 @@ body.proctoring-lb-disable-scrolling {
     overflow: hidden;
 }
 
+/* Non-blocking warning banner shown when the AI backend reports more than
+   one person in the webcam frame. Sits at the top of the viewport, slides
+   down, auto-hides after 8 s (proctoring.js::showMultiFaceBanner). */
+.proctoring-multiface-banner {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -110%);
+    z-index: 10001;
+    max-width: 720px;
+    width: calc(100% - 32px);
+    margin-top: 16px;
+    padding: 12px 20px;
+    background: #c0392b;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: transform 0.25s ease-out;
+    text-align: center;
+}
+
+.proctoring-multiface-banner.visible {
+    transform: translate(-50%, 0);
+}
+
 .proctoring-lightboxOverlay {
     position: absolute;
     top: 0;

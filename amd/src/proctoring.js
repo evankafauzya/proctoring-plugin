@@ -11,6 +11,7 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
                 {key: 'enable_web_camera_before_submitting', component: 'quizaccess_proctoring'},
                 {key: 'webcam', component: 'quizaccess_proctoring'},
                 {key: 'videonotavailable', component: 'quizaccess_proctoring'},
+                {key: 'multiface_banner', component: 'quizaccess_proctoring'},
             ];
             try {
                 const strings = await Str.get_strings(stringkeys);
@@ -21,11 +22,34 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
                     enablewebcamerabeforesubmitting: strings[3],
                     webcam: strings[4],
                     videonotavailable: strings[5],
+                    multifacebanner: strings[6],
                 };
             } catch (error) {
                 Notification.exception(error);
                 return {}; // Return an empty object in case of an error.
             }
+        };
+
+        // Non-blocking on-screen warning shown to the student when the
+        // server reports multi-face detection. Auto-dismisses after 8 s.
+        // Subsequent detections refresh the timer rather than stacking.
+        const showMultiFaceBanner = (message) => {
+            let banner = document.getElementById('proctoring-multiface-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'proctoring-multiface-banner';
+                banner.className = 'proctoring-multiface-banner';
+                banner.setAttribute('role', 'alert');
+                document.body.appendChild(banner);
+            }
+            banner.textContent = message;
+            banner.classList.add('visible');
+            if (banner._dismiss) {
+                clearTimeout(banner._dismiss);
+            }
+            banner._dismiss = setTimeout(() => {
+                banner.classList.remove('visible');
+            }, 8000);
         };
 
         $('#id_submitbutton').prop("disabled", true);
@@ -227,6 +251,14 @@ define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
                                         type: 'error'
                                     });
                                 }
+                            }
+                            // Server says more than one person is visible:
+                            // warn the student, grab one extra evidence
+                            // frame on a short delay (the offending second
+                            // person may still be in view).
+                            if (res.multi_face_detected) {
+                                showMultiFaceBanner(strings.multifacebanner);
+                                setTimeout(takepicture, 2000);
                             }
                         }).fail(Notification.exception);
                     } else {
