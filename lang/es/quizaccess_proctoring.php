@@ -88,7 +88,6 @@ $string['summary:unusualgaze'] = 'Capturas con mirada inusual';
 $string['summary:avggazeoffset'] = 'Desplazamiento medio de la mirada';
 $string['summary:riskdistribution'] = 'Distribución de riesgo';
 $string['summary:duration'] = 'Duración de la sesión';
-$string['summary:durationformat'] = '{$a->minutes} min ({$a->start} → {$a->end})';
 $string['summary:overallrisk'] = 'Riesgo general';
 $string['summary:threshold'] = 'Umbral de coincidencia facial';
 

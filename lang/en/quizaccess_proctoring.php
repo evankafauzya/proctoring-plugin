@@ -88,7 +88,6 @@ $string['summary:unusualgaze'] = 'Frames with unusual eye gaze';
 $string['summary:avggazeoffset'] = 'Average eye-gaze offset';
 $string['summary:riskdistribution'] = 'Risk distribution';
 $string['summary:duration'] = 'Session duration';
-$string['summary:durationformat'] = '{$a->minutes} min ({$a->start} → {$a->end})';
 $string['summary:overallrisk'] = 'Overall risk';
 $string['summary:threshold'] = 'Face match threshold';
 

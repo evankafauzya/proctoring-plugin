@@ -64,7 +64,7 @@
                                     <td>{{summary.success_rate}}% ({{summary.face_match_success}}/{{summary.analyzed_total}})</td>
                                 </tr>
                                 <tr>
-                                    <td>{{#str}}summary:avgscore, quizaccess_proctoring{{/str}} (threshold {{summary.threshold}}%)</td>
+                                    <td>{{#str}}summary:avgscore, quizaccess_proctoring{{/str}} <small class="text-muted">({{#str}}summary:threshold, quizaccess_proctoring{{/str}}: {{summary.threshold}}%)</small></td>
                                     <td>{{summary.avg_score}}%</td>
                                 </tr>
                                 <tr>
@@ -83,12 +83,12 @@
                                     <td>{{#str}}summary:unusualgaze, quizaccess_proctoring{{/str}}</td>
                                     <td>{{summary.unusual_gaze}}</td>
                                 </tr>
-                                {{#summary.avg_gaze_offset}}
+                                {{#summary.has_gaze_offset}}
                                     <tr>
                                         <td>{{#str}}summary:avggazeoffset, quizaccess_proctoring{{/str}}</td>
                                         <td>{{summary.avg_gaze_offset}}</td>
                                     </tr>
-                                {{/summary.avg_gaze_offset}}
+                                {{/summary.has_gaze_offset}}
                                 <tr>
                                     <td>{{#str}}summary:riskdistribution, quizaccess_proctoring{{/str}}</td>
                                     <td>

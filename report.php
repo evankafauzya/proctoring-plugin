@@ -465,8 +465,6 @@ if (
 
                 $row = [];
                 $row['name'] = '#' . $rowidx;
-                $row['firstname'] = $info->firstname;
-                $row['lastname'] = $info->lastname;
                 $row['image_url'] = $info->webcampicture;
                 $row['timestamp'] = userdate((int) $info->timemodified, get_string('strftimedatetimeshort', 'langconfig'));
                 if ($summary['first_time'] === null || $info->timemodified < $summary['first_time']) {
@@ -493,7 +491,7 @@ if (
 
                 $row['border_color'] = $info->awsflag == 2 && $info->awsscore > $thresholdvalue ? 'green' :
                                         ($info->awsflag == 2 && $info->awsscore < $thresholdvalue ? 'red' :
-                                        ($info->awsflag == 3 && $info->awsscore < $thresholdvalue ? 'yellow' : 'none'));
+                                        ($info->awsflag == 3 && $info->awsscore < $thresholdvalue ? 'yellow' : 'gray'));
 
                 // Parse the stored /detect/behavior result. High-risk frames
                 // override the face-match colour so a reviewer sees them at a
@@ -561,9 +559,14 @@ if (
             'multiple_faces' => $summary['multiple_faces'],
             'unusual_head' => $summary['unusual_head'],
             'unusual_gaze' => $summary['unusual_gaze'],
+            // has_gaze_offset is a separate boolean because the template
+            // uses {{#avg_gaze_offset}} as a section test, and Mustache
+            // treats 0.0 as falsy — which would hide the row even when the
+            // measurement is a legitimate zero offset.
+            'has_gaze_offset' => $summary['gaze_offset_count'] > 0,
             'avg_gaze_offset' => $summary['gaze_offset_count']
                 ? round($summary['gaze_offset_sum'] / $summary['gaze_offset_count'], 2)
-                : null,
+                : 0,
             'risk_low' => $summary['risk_low'],
             'risk_medium' => $summary['risk_medium'],
             'risk_high' => $summary['risk_high'],
@@ -603,9 +606,13 @@ if (
             'redirecturl' => $redirecturl,
             'data' => $studentdata,
             'userimageurl' => $userimageurl,
-            'firstname' => $info->firstname,
-            'lastname' => $info->lastname,
-            'email' => $info->email,
+            // Identity fields come from $user (always set), not from the last
+            // foreach row — the recordset can be empty when every frame for
+            // this attempt is flagged for deletion, which would leave $info
+            // undefined and throw on PHP 8.
+            'firstname' => $user->firstname,
+            'lastname' => $user->lastname,
+            'email' => $user->email,
             'fcmethod' => ($fcmethod == 'BS') ? true : false,
             'analyzeurl' => $analyzeurl,
             'summary' => (object) $summarycontext,
