@@ -132,10 +132,10 @@ The enrollment link on the profile page comes from
 | `quizaccess_proctoring_face_images` | Face image references (`admin_image` = reference, `camshot_image` = capture). |
 | `quizaccess_proctoring_facematch_task` | Queue for asynchronous (cron) face matching. |
 | `quizaccess_proctoring_fm_warnings` | Logged failed-match warnings. |
-| `quizaccess_proctoring_multiuser_alerts` | Multiple-faces-detected alerts. |
-| `quizaccess_proctoring_eyetrack_alerts` | Eye-tracking alerts. |
-| `quizaccess_proctoring_reverification` | Re-verification records. |
-| `quizaccess_proctoring_analytics` | Aggregated proctoring analytics. |
+
+Multi-face detection, head-pose, and eye-gaze signals are **not** stored in
+separate tables — they live in `quizaccess_proctoring_logs.behavior_result`
+(see next section) and are aggregated on read by `report.php`.
 
 ---
 
@@ -183,13 +183,3 @@ In parallel with face matching, every saved frame is sent to the backend's
 
 Styles for the risk badges live in `styles.css`
 (`.proctoring-risk-low|medium|high`, `.proctoring-summary-card`).
-
----
-
-## Additional modules
-
-The 2.0 "enhanced" build also ships multi-user detection, deeper eye-tracking
-session aggregation, and analytics (`classes/ai_model_integration/`,
-`amd/src/enhancedProctoring.js`, and the `*_alerts` / `_analytics` tables).
-They share the same AI backend but are independent of the face-match pipeline
-documented above.

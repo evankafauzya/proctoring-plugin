@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <XMLDB PATH="mod/quiz/accessrule/proctoring/db" VERSION="2025042201"
-       COMMENT="XMLDB file for Moodle mod/quiz/accessrule/proctoring - Enhanced with multi-user detection, eye tracking, periodic verification, and analytics"
+       COMMENT="XMLDB file for Moodle mod/quiz/accessrule/proctoring"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../../../lib/xmldb/xmldb.xsd"
 >
@@ -115,128 +115,6 @@
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="quizaccess_proctoring_multiuser_alerts" COMMENT="Stores multi-user detection alerts">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="reportid"/>
-                <FIELD NAME="reportid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Report id" PREVIOUS="id" NEXT="courseid"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Course id" PREVIOUS="reportid" NEXT="quizid"/>
-                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Quiz id" PREVIOUS="courseid" NEXT="userid"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="User id" PREVIOUS="quizid" NEXT="user_count"/>
-                <FIELD NAME="user_count" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Number of users detected" PREVIOUS="userid" NEXT="alert_severity"/>
-                <FIELD NAME="alert_severity" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="warning"
-                       SEQUENCE="false" COMMENT="Alert severity level (critical, warning, info)" PREVIOUS="user_count" NEXT="screenshot"/>
-                <FIELD NAME="screenshot" TYPE="text" NOTNULL="false" SEQUENCE="false"
-                       COMMENT="Screenshot showing multiple users" PREVIOUS="alert_severity" NEXT="timedetected"/>
-                <FIELD NAME="timedetected" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Time when alert was detected" PREVIOUS="screenshot"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="reportid"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="quizaccess_proctoring_eyetrack_alerts" COMMENT="Stores eye gaze/focus alerts">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="reportid"/>
-                <FIELD NAME="reportid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Report id" PREVIOUS="id" NEXT="courseid"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Course id" PREVIOUS="reportid" NEXT="quizid"/>
-                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Quiz id" PREVIOUS="courseid" NEXT="userid"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="User id" PREVIOUS="quizid" NEXT="eye_not_visible"/>
-                <FIELD NAME="eye_not_visible" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Count of frames where eyes not visible" PREVIOUS="userid" NEXT="looking_away"/>
-                <FIELD NAME="looking_away" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Count of times looking away from screen" PREVIOUS="eye_not_visible" NEXT="alert_severity"/>
-                <FIELD NAME="alert_severity" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="warning"
-                       SEQUENCE="false" COMMENT="Alert severity level" PREVIOUS="looking_away" NEXT="timedetected"/>
-                <FIELD NAME="timedetected" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Time when alert was detected" PREVIOUS="alert_severity"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="reportid"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="quizaccess_proctoring_reverification" COMMENT="Stores periodic re-verification attempts every 40 seconds">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="reportid"/>
-                <FIELD NAME="reportid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Report id" PREVIOUS="id" NEXT="courseid"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Course id" PREVIOUS="reportid" NEXT="quizid"/>
-                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Quiz id" PREVIOUS="courseid" NEXT="userid"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="User id" PREVIOUS="quizid" NEXT="reverification_number"/>
-                <FIELD NAME="reverification_number" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="1"
-                       SEQUENCE="false" COMMENT="Sequential re-verification count" PREVIOUS="userid" NEXT="verification_status"/>
-                <FIELD NAME="verification_status" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="pending"
-                       SEQUENCE="false" COMMENT="Status: pending, verified, failed" PREVIOUS="reverification_number" NEXT="face_match_score"/>
-                <FIELD NAME="face_match_score" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Face match score for this verification" PREVIOUS="verification_status" NEXT="quiz_paused_duration"/>
-                <FIELD NAME="quiz_paused_duration" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Duration quiz was paused in seconds" PREVIOUS="face_match_score" NEXT="screenshot"/>
-                <FIELD NAME="screenshot" TYPE="text" NOTNULL="false" SEQUENCE="false"
-                       COMMENT="Screenshot for re-verification" PREVIOUS="quiz_paused_duration" NEXT="timecreated"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Time when re-verification was initiated" PREVIOUS="screenshot" NEXT="timecompleted"/>
-                <FIELD NAME="timecompleted" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Time when re-verification was completed" PREVIOUS="timecreated"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="reportid"/>
-            </KEYS>
-        </TABLE>
-
-        <TABLE NAME="quizaccess_proctoring_analytics" COMMENT="Stores comprehensive analytics after quiz completion">
-            <FIELDS>
-                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="reportid"/>
-                <FIELD NAME="reportid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Report id" PREVIOUS="id" NEXT="courseid"/>
-                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Course id" PREVIOUS="reportid" NEXT="quizid"/>
-                <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Quiz id" PREVIOUS="courseid" NEXT="userid"/>
-                <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="User id" PREVIOUS="quizid" NEXT="total_captures"/>
-                <FIELD NAME="total_captures" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Total number of webcam captures" PREVIOUS="userid" NEXT="multiuser_alerts"/>
-                <FIELD NAME="multiuser_alerts" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Total multi-user alerts triggered" PREVIOUS="total_captures" NEXT="eyetrack_alerts"/>
-                <FIELD NAME="eyetrack_alerts" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Total eye tracking/gaze alerts" PREVIOUS="multiuser_alerts" NEXT="reverifications_triggered"/>
-                <FIELD NAME="reverifications_triggered" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Total re-verifications triggered" PREVIOUS="eyetrack_alerts" NEXT="reverifications_passed"/>
-                <FIELD NAME="reverifications_passed" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Re-verifications that passed" PREVIOUS="reverifications_triggered" NEXT="reverifications_failed"/>
-                <FIELD NAME="reverifications_failed" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Re-verifications that failed" PREVIOUS="reverifications_passed" NEXT="total_pause_time"/>
-                <FIELD NAME="total_pause_time" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Total time quiz was paused in seconds" PREVIOUS="reverifications_failed" NEXT="average_face_match_score"/>
-                <FIELD NAME="average_face_match_score" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Average face match score across all captures" PREVIOUS="total_pause_time" NEXT="risk_score"/>
-                <FIELD NAME="risk_score" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" DEFAULT="0"
-                       SEQUENCE="false" COMMENT="Overall risk score 0-100" PREVIOUS="average_face_match_score" NEXT="risk_level"/>
-                <FIELD NAME="risk_level" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="low"
-                       SEQUENCE="false" COMMENT="Risk level: low, medium, high, critical" PREVIOUS="risk_score" NEXT="compliance_status"/>
-                <FIELD NAME="compliance_status" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="compliant"
-                       SEQUENCE="false" COMMENT="Compliance status: compliant, suspected, flagged, blocked" PREVIOUS="risk_level" NEXT="timecreated"/>
-                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Time when analytics was generated" PREVIOUS="compliance_status"/>
-            </FIELDS>
-            <KEYS>
-                <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="reportid"/>
             </KEYS>
         </TABLE>
 

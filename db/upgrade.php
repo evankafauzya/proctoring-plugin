@@ -247,5 +247,22 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026052303, 'quizaccess', 'proctoring');
     }
 
+    if ($oldversion < 2026060901) {
+        // Drop the four "enhanced 2.0" tables that were never wired to any
+        // runtime code path (no PHP caller, no JS caller). The Session Summary
+        // in report.php is built directly from quizaccess_proctoring_logs.
+        foreach (['quizaccess_proctoring_multiuser_alerts',
+                  'quizaccess_proctoring_eyetrack_alerts',
+                  'quizaccess_proctoring_reverification',
+                  'quizaccess_proctoring_analytics'] as $tablename) {
+            $table = new xmldb_table($tablename);
+            if ($dbman->table_exists($table)) {
+                $dbman->drop_table($table);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026060901, 'quizaccess', 'proctoring');
+    }
+
     return true;
 }

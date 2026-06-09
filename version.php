@@ -25,8 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'quizaccess_proctoring';
-$plugin->release = '2.0.0 (Enhanced with AI-Powered Integrity Verification)';
-$plugin->version = 2026052305;
+$plugin->release = '2.0.1';
+$plugin->version = 2026060901;
 $plugin->requires = 2023100900;
 $plugin->maturity = MATURITY_STABLE;
-$plugin->fullreleaseName = 'Moodle Proctoring Enhanced v2.0 - Multi-User Detection, Eye Tracking, Periodic Verification & Analytics';
