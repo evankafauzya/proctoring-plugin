@@ -28,11 +28,11 @@ $messageproviders = [
     // Sent to course teachers + site admins when 2+ persons are detected in a
     // proctored quiz webcam frame. Rate-limited to one message per attempt
     // (see lib.php::quizaccess_proctoring_send_multiface_alert).
+    //
+    // No `defaults` block on purpose: Moodle 4.0 removed MESSAGE_DEFAULT_LOGGEDIN
+    // and MESSAGE_DEFAULT_LOGGEDOFF, and the recommended path on 4.x is to let
+    // each recipient's message-preferences UI choose the delivery channel.
     'multiface_alert' => [
         'capability' => 'mod/quiz:viewreports',
-        'defaults' => [
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
-        ],
     ],
 ];
