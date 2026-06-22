@@ -55,9 +55,15 @@
                        PREVIOUS="behavior_result" NEXT="source"/>
                 <FIELD NAME="source" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="silent" SEQUENCE="false"
                        COMMENT="What produced this row: seed | silent | preflight | periodic | presubmit"
-                       PREVIOUS="multiface_alerted" NEXT="timemodified"/>
+                       PREVIOUS="multiface_alerted" NEXT="is_match"/>
+                <FIELD NAME="is_match" TYPE="int" LENGTH="2" NOTNULL="false" UNSIGNED="false" SEQUENCE="false"
+                       COMMENT="Backend /verify/face is_match verdict: 1 match, 0 no match, null if not analyzed"
+                       PREVIOUS="source" NEXT="threshold_used"/>
+                <FIELD NAME="threshold_used" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false"
+                       COMMENT="Threshold percent the backend applied (details.threshold_used), null if not provided"
+                       PREVIOUS="is_match" NEXT="timemodified"/>
                 <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"
-                       COMMENT="Validation process date and time" PREVIOUS="multiface_alerted"/>
+                       COMMENT="Validation process date and time" PREVIOUS="threshold_used"/>
             </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="quizid"/>

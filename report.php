@@ -421,6 +421,8 @@ if (
                u.email AS email,
                e.awsscore,
                e.awsflag,
+               e.is_match,
+               e.threshold_used,
                e.behavior_result,
                e.source
         FROM {quizaccess_proctoring_logs} e
@@ -470,6 +472,8 @@ if (
             'presubmit_total' => 0,
             'presubmit_passed' => 0,
             'silent_total' => 0,
+            // Threshold the backend reported applying (details.threshold_used).
+            'backend_threshold' => null,
         ];
 
         $rowidx = 0;
@@ -493,7 +497,17 @@ if (
                 // service error, etc.) so we don't count it.
                 $row['has_score'] = (int) ($info->awsflag == 2);
                 $row['score'] = (int) $info->awsscore;
-                $passed = ($info->awsflag == 2 && $info->awsscore > $thresholdvalue);
+                // Pass/fail follows the backend's own is_match verdict. Rows
+                // analyzed before this was stored (is_match null) fall back to
+                // the historical score-vs-threshold comparison.
+                $hasverdict = isset($info->is_match) && $info->is_match !== null;
+                $passed = ($info->awsflag == 2) && ($hasverdict
+                    ? ((int) $info->is_match === 1)
+                    : ($info->awsscore > $thresholdvalue));
+                // Remember the threshold the backend actually applied, for display.
+                if (isset($info->threshold_used) && $info->threshold_used !== null && (int) $info->threshold_used > 0) {
+                    $summary['backend_threshold'] = (int) $info->threshold_used;
+                }
                 if ($info->awsflag == 2) {
                     $summary['analyzed_total']++;
                     $summary['score_sum'] += (int) $info->awsscore;
@@ -528,8 +542,8 @@ if (
                     $summary['silent_total']++;
                 }
 
-                $row['border_color'] = $info->awsflag == 2 && $info->awsscore > $thresholdvalue ? 'green' :
-                                        ($info->awsflag == 2 && $info->awsscore < $thresholdvalue ? 'red' :
+                $row['border_color'] = ($info->awsflag == 2 && $passed) ? 'green' :
+                                        ($info->awsflag == 2 && !$passed ? 'red' :
                                         ($info->awsflag == 3 && $info->awsscore < $thresholdvalue ? 'yellow' : 'gray'));
 
                 // Parse the stored /detect/behavior result. High-risk frames
@@ -618,7 +632,9 @@ if (
             'end_time' => $summary['last_time']
                 ? userdate($summary['last_time'], get_string('strftimedatetimeshort', 'langconfig'))
                 : '',
-            'threshold' => $thresholdvalue,
+            // Prefer the threshold the backend actually applied (threshold_used);
+            // fall back to the local setting for rows analyzed before it was stored.
+            'threshold' => $summary['backend_threshold'] ?? $thresholdvalue,
             'silent_total' => $summary['silent_total'],
             'preflight_total' => $summary['preflight_total'],
             'preflight_passed' => $summary['preflight_passed'],

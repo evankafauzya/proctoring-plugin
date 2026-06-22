@@ -142,10 +142,12 @@ function quizaccess_proctoring_get_image_file($userid) {
  * @param int $rowid The report ID (`rowid`) of the record to be updated.
  * @param string $matchresult The similarity score, which will be converted to an integer.
  * @param int $awsflag Flag indicating the status of the analyzed images (1/2/3).
+ * @param int|null $ismatch The backend's is_match verdict (1/0), or null to leave unchanged.
+ * @param int|null $thresholdused The threshold percent the backend applied, or null to leave unchanged.
  *
  * @return void This function does not return any value.
  */
-function quizaccess_proctoring_update_match_result($rowid, $matchresult, $awsflag) {
+function quizaccess_proctoring_update_match_result($rowid, $matchresult, $awsflag, $ismatch = null, $thresholdused = null) {
     global $DB;
     $score = (int)$matchresult;
 
@@ -154,6 +156,15 @@ function quizaccess_proctoring_update_match_result($rowid, $matchresult, $awsfla
     $record->id = $rowid;
     $record->awsflag = $awsflag;
     $record->awsscore = $score;
+
+    // Persist the backend's own verdict/threshold when supplied. The error
+    // paths (101/102) pass null so they don't clobber a previous verdict.
+    if ($ismatch !== null) {
+        $record->is_match = (int) $ismatch;
+    }
+    if ($thresholdused !== null) {
+        $record->threshold_used = (int) $thresholdused;
+    }
 
     // Update the record using Moodle's update_record method.
     $DB->update_record('quizaccess_proctoring_logs', $record);
@@ -764,6 +775,9 @@ function quizaccess_proctoring_extracted(
 
     // Initialize similarity variable.
     $similarity = 0;
+    // The backend's own verdict/threshold; null until a valid response is parsed.
+    $ismatch = null;
+    $thresholdused = null;
 
     // Diagnostic logging: record the raw AI-backend response and threshold.
     // NOTE: the backend returns a similarity score (0..1); higher = more alike.
@@ -777,18 +791,34 @@ function quizaccess_proctoring_extracted(
         $percent = (int) round($score * 100);
         $reason = isset($response->details->reason) ? $response->details->reason : '';
 
+        // Trust the backend's own pass/fail verdict instead of re-thresholding
+        // the score Moodle-side, so the report agrees with what /verify/face
+        // actually decided.
+        $ismatch = !empty($response->is_match) ? 1 : 0;
+
+        // Capture the threshold the backend applied (details.threshold_used).
+        // It may arrive as a fraction (0..1) or already as a percent; normalise
+        // to a 0..100 integer so it lines up with the stored match percentage.
+        if (isset($response->details->threshold_used) && is_numeric($response->details->threshold_used)) {
+            $tused = (float) $response->details->threshold_used;
+            if ($tused > 0 && $tused <= 1) {
+                $tused *= 100;
+            }
+            $thresholdused = (int) round($tused);
+        }
+
         // Store the real match percentage so the report and the success check agree.
         $similarity = $percent;
 
-        if ($percent > $threshold) {
+        $appliedthreshold = $thresholdused !== null ? $thresholdused : $threshold;
+        if ($ismatch) {
             quizaccess_proctoring_fm_log("FaceMatch reportid={$reportid} result=MATCH"
-                . " score={$percent}% > threshold={$threshold}%");
+                . " score={$percent}% is_match=true threshold_used={$appliedthreshold}%");
         } else {
             quizaccess_proctoring_fm_log("FaceMatch reportid={$reportid} result=NO_MATCH"
-                . " score={$percent}% <= threshold={$threshold}%"
-                . ($reason ? " reason={$reason}" : '')
-                . " -- lower the 'threshold' setting below {$percent} to allow this match.");
-            // Log a warning since the score did not meet the threshold.
+                . " score={$percent}% is_match=false threshold_used={$appliedthreshold}%"
+                . ($reason ? " reason={$reason}" : ''));
+            // Log a warning since the backend reported no match.
             quizaccess_proctoring_log_fm_warning($reportid);
         }
     } else if (isset($response->error)) {
@@ -801,8 +831,9 @@ function quizaccess_proctoring_extracted(
         quizaccess_proctoring_log_fm_warning($reportid);
     }
 
-    // Update the match result in the database with the calculated similarity score.
-    quizaccess_proctoring_update_match_result($reportid, $similarity, 2);
+    // Update the match result in the database with the calculated similarity score
+    // plus the backend's own verdict and threshold.
+    quizaccess_proctoring_update_match_result($reportid, $similarity, 2, $ismatch, $thresholdused);
 }
 
 /**
@@ -858,6 +889,16 @@ function quizaccess_proctoring_check_similarity_bs(string $referenceimageurl, st
         'reference_face' => 'data:image/png;base64,' . base64_encode($imagedata1),
         'current_face' => 'data:image/png;base64,' . base64_encode($imagedata2),
     ];
+
+    // Send Moodle's configured threshold so the backend computes is_match against
+    // the same value the report displays, making the admin setting the single
+    // source of truth. The setting is a percentage (e.g. 62); the backend's
+    // match_threshold expects a 0..1 cosine fraction (e.g. 0.62), and echoes it
+    // back as details.threshold_used.
+    $thresholdpercent = (float) quizaccess_proctoring_get_proctoring_settings('threshold');
+    if ($thresholdpercent > 0) {
+        $data['options'] = ['match_threshold' => round($thresholdpercent / 100, 4)];
+    }
 
     // Convert the data to JSON format.
     $payload = json_encode($data);

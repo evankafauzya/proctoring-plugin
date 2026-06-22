@@ -292,5 +292,26 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026060903, 'quizaccess', 'proctoring');
     }
 
+    if ($oldversion < 2026060904) {
+        // Persist the backend's own face-match verdict so the report reflects
+        // exactly what /verify/face decided, rather than re-thresholding the
+        // score Moodle-side:
+        //   is_match        -> the backend's is_match boolean (1/0, null = not analyzed)
+        //   threshold_used  -> details.threshold_used the backend applied (percent).
+        $table = new xmldb_table('quizaccess_proctoring_logs');
+
+        $field1 = new xmldb_field('is_match', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'source');
+        if (!$dbman->field_exists($table, $field1)) {
+            $dbman->add_field($table, $field1);
+        }
+
+        $field2 = new xmldb_field('threshold_used', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'is_match');
+        if (!$dbman->field_exists($table, $field2)) {
+            $dbman->add_field($table, $field2);
+        }
+
+        upgrade_plugin_savepoint(true, 2026060904, 'quizaccess', 'proctoring');
+    }
+
     return true;
 }

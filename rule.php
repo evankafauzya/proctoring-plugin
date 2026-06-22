@@ -858,69 +858,106 @@ JS;
     }
 
     public function verify_face($imagepath, $userid) {
-    global $CFG;
-    
-    $ai_url = get_config('quizaccess_proctoring', 'ai_service_url');
-    if (empty($ai_url)) {
-        $ai_url = 'http://127.0.0.1:5000';
+        global $CFG;
+
+        // Use the same configured backend as the rest of the plugin. Fall back
+        // to ai_service_url and then the local default.
+        $aiurl = quizaccess_proctoring_get_proctoring_settings('bsapi');
+        if (empty($aiurl)) {
+            $aiurl = get_config('quizaccess_proctoring', 'ai_service_url');
+        }
+        if (empty($aiurl)) {
+            $aiurl = 'http://127.0.0.1:5000';
+        }
+
+        // Check if file exists.
+        if (!file_exists($imagepath)) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'error' => 'Image file not found',
+            ];
+        }
+
+        // The AI backend exposes face verification at /verify/face (the bare
+        // /verify path does not exist). Append it if only the root is configured.
+        $endpoint = rtrim($aiurl, '/');
+        if (strpos($endpoint, '/verify/face') === false) {
+            $endpoint .= '/verify/face';
+        }
+
+        // Read the captured frame and send it as a base64 data URL. user_id lets
+        // the backend match against the enrolled reference set for that user.
+        $imagedata = file_get_contents($imagepath);
+        if (empty($imagedata)) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'error' => 'Could not read image file',
+            ];
+        }
+
+        $body = [
+            'current_face' => 'data:image/jpeg;base64,' . base64_encode($imagedata),
+            'user_id' => (string) $userid,
+        ];
+
+        // Send Moodle's configured threshold (percent) as a 0..1 fraction so the
+        // backend's is_match verdict agrees with what the report displays.
+        $thresholdpercent = (float) quizaccess_proctoring_get_proctoring_settings('threshold');
+        if ($thresholdpercent > 0) {
+            $body['options'] = ['match_threshold' => round($thresholdpercent / 100, 4)];
+        }
+
+        // Build headers; the backend requires a Bearer token when one is set.
+        $headers = ['Content-Type: application/json'];
+        $apikey = quizaccess_proctoring_get_proctoring_settings('bs_api_key');
+        if (!empty($apikey)) {
+            $headers[] = 'Authorization: Bearer ' . $apikey;
+        }
+
+        // Use Moodle's cURL with ignoresecurity so requests reach 127.0.0.1.
+        $curl = new \curl(['ignoresecurity' => true]);
+        $response = $curl->post($endpoint, json_encode($body), [
+            'CURLOPT_TIMEOUT' => 30,
+            'CURLOPT_FOLLOWLOCATION' => true,
+            'CURLOPT_HTTPHEADER' => $headers,
+        ]);
+
+        $httpcode = (int) ($curl->get_info()['http_code'] ?? 0);
+        if ($curl->get_errno() || $httpcode !== 200) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'error' => 'AI service returned error: ' . ($curl->error ?: ('HTTP ' . $httpcode)),
+            ];
+        }
+
+        $result = json_decode($response, true);
+        if (!is_array($result) || !isset($result['is_match'])) {
+            return [
+                'success' => false,
+                'matched' => false,
+                'error' => 'Invalid response from AI service',
+            ];
+        }
+
+        // Map the backend's contract to this method's return shape.
+        // threshold_used is a 0..1 fraction present only on a real comparison;
+        // normalise it to a percentage, falling back to the configured setting.
+        $thresholdused = $result['details']['threshold_used'] ?? null;
+        if ($thresholdused !== null && $thresholdused > 0 && $thresholdused <= 1) {
+            $thresholdused = (int) round($thresholdused * 100);
+        } else if ($thresholdused === null) {
+            $thresholdused = (int) $thresholdpercent;
+        }
+
+        return [
+            'success' => true,
+            'matched' => !empty($result['is_match']),
+            'similarity' => isset($result['match_score']) ? (float) $result['match_score'] : 0,
+            'threshold' => $thresholdused,
+            'error' => $result['details']['reason'] ?? null,
+        ];
     }
-    
-    // Check if file exists
-    if (!file_exists($imagepath)) {
-        return array(
-            'success' => false,
-            'matched' => false,
-            'error' => 'Image file not found'
-        );
-    }
-    
-    // Prepare curl request
-    $ch = curl_init();
-    $cfile = new CURLFile($imagepath, 'image/jpeg', basename($imagepath));
-    $postdata = array(
-        'user_id' => $userid,
-        'image' => $cfile
-    );
-    
-    curl_setopt($ch, CURLOPT_URL, $ai_url . '/verify');
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($ch);
-    curl_close($ch);
-    
-    // Log the verification attempt
-    error_log("Face verification for user $userid: HTTP $http_code, Response: $response");
-    
-    if ($http_code !== 200) {
-        return array(
-            'success' => false,
-            'matched' => false,
-            'error' => 'AI service returned error: ' . $curl_error
-        );
-    }
-    
-    $result = json_decode($response, true);
-    
-    if (!$result) {
-        return array(
-            'success' => false,
-            'matched' => false,
-            'error' => 'Invalid response from AI service'
-        );
-    }
-    
-    // Return verification result
-    return array(
-        'success' => true,
-        'matched' => isset($result['matched']) ? $result['matched'] : false,
-        'similarity' => isset($result['similarity']) ? $result['similarity'] : 0,
-        'threshold' => isset($result['threshold']) ? $result['threshold'] : 0,
-        'error' => isset($result['error']) ? $result['error'] : null
-    );
-}
 }
