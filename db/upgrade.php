@@ -341,5 +341,26 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026060905, 'quizaccess', 'proctoring');
     }
 
+    if ($oldversion < 2026060906) {
+        // Same resync but for the per-quiz settings table. Some installs are
+        // past savepoint 2026052303 in $oldversion but the reverifyinterval /
+        // pausequiztime columns never actually stuck, which crashes the quiz
+        // view because rule.php::get_settings_sql selects them explicitly.
+        $table = new xmldb_table('quizaccess_proctoring');
+
+        $ensurefields = [
+            new xmldb_field('proctoringrequired', XMLDB_TYPE_INTEGER, '2',  null, XMLDB_NOTNULL, null, '0'),
+            new xmldb_field('reverifyinterval',   XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '120'),
+            new xmldb_field('pausequiztime',      XMLDB_TYPE_INTEGER, '2',  null, XMLDB_NOTNULL, null, '0'),
+        ];
+        foreach ($ensurefields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026060906, 'quizaccess', 'proctoring');
+    }
+
     return true;
 }
