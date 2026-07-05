@@ -268,9 +268,13 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         // Add multiface_alerted flag to quizaccess_proctoring_logs so the
         // server-side multi-face notification can be rate-limited to one
         // message per quiz attempt (see lib.php::send_multiface_alert).
+        //
+        // No AFTER positioning (previous field = null): earlier defensive
+        // savepoints don't guarantee an ordered predecessor exists, and
+        // column ordering in the DB isn't semantically meaningful anyway.
         $table = new xmldb_table('quizaccess_proctoring_logs');
         $field = new xmldb_field('multiface_alerted', XMLDB_TYPE_INTEGER, '2', null,
-            XMLDB_NOTNULL, null, '0', 'behavior_result');
+            XMLDB_NOTNULL, null, '0');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -284,7 +288,7 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         // Values: seed | silent | preflight | periodic | presubmit.
         $table = new xmldb_table('quizaccess_proctoring_logs');
         $field = new xmldb_field('source', XMLDB_TYPE_CHAR, '16', null,
-            XMLDB_NOTNULL, null, 'silent', 'multiface_alerted');
+            XMLDB_NOTNULL, null, 'silent');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
@@ -300,17 +304,41 @@ function xmldb_quizaccess_proctoring_upgrade($oldversion) {
         //   threshold_used  -> details.threshold_used the backend applied (percent).
         $table = new xmldb_table('quizaccess_proctoring_logs');
 
-        $field1 = new xmldb_field('is_match', XMLDB_TYPE_INTEGER, '2', null, null, null, null, 'source');
+        $field1 = new xmldb_field('is_match', XMLDB_TYPE_INTEGER, '2', null, null, null, null);
         if (!$dbman->field_exists($table, $field1)) {
             $dbman->add_field($table, $field1);
         }
 
-        $field2 = new xmldb_field('threshold_used', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'is_match');
+        $field2 = new xmldb_field('threshold_used', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
         if (!$dbman->field_exists($table, $field2)) {
             $dbman->add_field($table, $field2);
         }
 
         upgrade_plugin_savepoint(true, 2026060904, 'quizaccess', 'proctoring');
+    }
+
+    if ($oldversion < 2026060905) {
+        // Schema resync: some installs have reached this point via a broken
+        // path (e.g. their $oldversion is past a savepoint whose add_field
+        // silently didn't stick, so a later step references a column that
+        // isn't there). Ensure every column install.xml declares actually
+        // exists in the DB.
+        $table = new xmldb_table('quizaccess_proctoring_logs');
+
+        $ensurefields = [
+            new xmldb_field('behavior_result',   XMLDB_TYPE_TEXT,    null, null, null, null, null),
+            new xmldb_field('multiface_alerted', XMLDB_TYPE_INTEGER, '2',  null, XMLDB_NOTNULL, null, '0'),
+            new xmldb_field('source',            XMLDB_TYPE_CHAR,    '16', null, XMLDB_NOTNULL, null, 'silent'),
+            new xmldb_field('is_match',          XMLDB_TYPE_INTEGER, '2',  null, null,          null, null),
+            new xmldb_field('threshold_used',    XMLDB_TYPE_INTEGER, '10', null, null,          null, null),
+        ];
+        foreach ($ensurefields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2026060905, 'quizaccess', 'proctoring');
     }
 
     return true;
